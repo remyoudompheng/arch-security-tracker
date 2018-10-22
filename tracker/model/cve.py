@@ -46,7 +46,9 @@ class CVE(db.Model):
     REFERENCES_LENGTH = 4096
     NOTES_LENGTH = 4096
 
+    __versioned__ = {}
     __tablename__ = 'cve'
+
     id = db.Column(db.String(15), index=True, unique=True, primary_key=True)
     issue_type = db.Column(db.String(64), default='unknown')
     description = db.Column(db.String(DESCRIPTION_LENGTH))

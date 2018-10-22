@@ -1,0 +1,40 @@
+			<table class="styled-table column-major full size">
+				<tbody>
+					{%- if issue.severity_mod %}
+					<tr>
+						<td>Severity</td>
+						<td class="full size">{{ colorize_diff(issue.previous.severity, issue.severity) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if issue.remote_mod %}
+					<tr>
+						<td>Remote</td>
+						<td class="full size">{{ colorize_diff(issue.previous.remote, issue.remote) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if issue.issue_type_mod %}
+					<tr>
+						<td>Type</td>
+						<td class="full size">{{ colorize_diff(issue.previous.issue_type|capitalize, issue.issue_type|capitalize) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if issue.description_mod %}
+					<tr>
+						<td>Description</td>
+						<td class="full size">{{ colorize_diff(issue.previous.description, issue.description) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if issue.reference_mod %}
+					<tr>
+						<td>References</td>
+						<td class="full size"><pre>{{ colorize_diff(issue.previous.reference, issue.reference) }}</pre></td>
+					</tr>
+					{%- endif %}
+					{%- if issue.notes_mod %}
+					<tr>
+						<td>Notes</td>
+						<td class="full size"><pre>{{ colorize_diff(issue.previous.notes, issue.notes) }}</pre></td>
+					</tr>
+					{%- endif %}
+				</tbody>
+			</table>

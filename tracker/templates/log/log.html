@@ -1,0 +1,21 @@
+{%- extends "base.html" -%}
+{%- from "_formhelpers.html" import boolean_value, colorize_diff, render_pagination -%}
+{% block content %}
+			<h1>Logs</h1>
+			{{ render_pagination(pagination) }}
+			{%- for log in pagination.items %}
+			{%- set transaction = log[0] %}
+			{%- set model = log[1] or log[2] or log[3] %}
+			{%- set issue = log[1] or log[2] or log[3] %}
+			{%- set group = log[1] or log[2] or log[3] %}
+			{%- set advisory = log[1] or log[2] or log[3] %}
+			<h2>{{ transaction.issued_at.strftime('%d %b %Y %H:%M:%S') }} <a href="/{% if group.__class__.__name__ == 'CVEGroupVersion' %}AVG-{% endif %}{{ model.id }}">{% if group.__class__.__name__ == 'CVEGroupVersion' %}AVG-{% endif %}{{ model.id }}</a>{% if can_watch_user_log %} by <a href="/user/{{ transaction.user}}/log">{{ transaction.user }}</a>{% endif %}</h2>
+			{% if group.__class__.__name__ == 'CVEVersion' %}
+				{%- include 'log/cve_log_table.html' %}
+			{% elif group.__class__.__name__ == 'CVEGroupVersion' %}
+				{%- include 'log/group_log_table.html' %}
+			{% elif advisory.__class__.__name__ == 'AdvisoryVersion' %}
+				{%- include 'log/advisory_log_table.html' %}
+			{% endif %}
+			{%- endfor %}
+{%- endblock %}

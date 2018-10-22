@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from itertools import chain
 
 from flask import flash
@@ -217,21 +218,23 @@ def edit_group(avg):
     issues_added = set(filter(lambda issue: issue not in issue_ids, cve_ids))
     issues_final = set(filter(lambda issue: issue.id not in issues_removed, issues))
 
-    if issues_removed:
-        (db.session.query(CVEGroupEntry)
-         .filter(CVEGroupEntry.group_id == group.id).filter(CVEGroupEntry.cve_id.in_(issues_removed))
-         .delete(synchronize_session=False))
-        for removed in issues_removed:
-            flash('Removed {}'.format(removed))
+    for issue in filter(lambda issue: issue.cve_id in issues_removed, list(group.issues)):
+        group.issues.remove(issue)
+        flash('Removed {}'.format(issue.cve_id))
 
     severities = [issue.severity for issue in list(filter(lambda issue: issue.id not in issues_removed, issues))]
     for cve_id in issues_added:
+        # TODO check if we can avoid this by the latter append call
         cve = db.get_or_create(CVE, id=cve_id)
-        db.get_or_create(CVEGroupEntry, group=group, cve=cve)
+        cvegroupentry = db.get_or_create(CVEGroupEntry, group=group, cve=cve)
         severities.append(cve.severity)
         issues_final.add(cve)
+        group.issues.append(cvegroupentry)
         flash('Added {}'.format(cve.id))
     group.severity = highest_severity(severities)
+
+    # TODO: do not update changed time if model is unchaged
+    group.changed = datetime.utcnow()
 
     pkgnames_removed = set(filter(lambda pkgname: pkgname not in pkgnames_edited, pkgnames))
     pkgnames_added = set(filter(lambda pkgname: pkgname not in pkgnames, pkgnames_edited))

@@ -1,0 +1,64 @@
+			<table class="styled-table column-major full size">
+				<tbody>
+					{%- if (group.packages or group.previous.packages) and group.packages != group.previous.packages %}
+					<tr>
+						<td>Packages</td>
+						<td class="full size">{{ colorize_diff(group.previous.packages|map(attribute='pkgname')|sort|join('\n'), group.packages|map(attribute='pkgname')|sort|join('\n')) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if (group.issues or group.previous.issues) and group.issues != group.previous.issues %}
+					<tr>
+						<td>Issues</td>
+						<td class="full size">{{ colorize_diff(group.previous.issues|map(attribute='cve_id')|issuesort|join('\n'), group.issues|map(attribute='cve_id')|issuesort|join('\n')) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.status_mod %}
+					<tr>
+						<td>Status</td>
+						<td class="full size">{{ colorize_diff(group.previous.status, group.status) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.severity_mod %}
+					<tr>
+						<td>Severity</td>
+						<td class="full size">{{ colorize_diff(group.previous.severity, group.severity) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.affected_mod %}
+					<tr>
+						<td>Affected</td>
+						<td class="full size">{{ colorize_diff(group.previous.affected, group.affected) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.fixed_mod %}
+					<tr>
+						<td>Fixed</td>
+						<td class="full size">{{ colorize_diff(group.previous.fixed, group.fixed) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.bug_ticket_mod %}
+					<tr>
+						<td>Ticket</td>
+						<td class="full size">{{ colorize_diff(group.previous.bug_ticket, group.bug_ticket) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.advisory_qualified_mod %}
+					<tr>
+						<td>Advisory qualified</td>
+						<td class="full size">{{ colorize_diff(boolean_value(group.previous.advisory_qualified|default(None), ''), boolean_value(group.advisory_qualified)) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if group.reference_mod %}
+					<tr>
+						<td>References</td>
+						<td class="full size"><pre>{{ colorize_diff(group.previous.reference, group.reference) }}</pre></td>
+					</tr>
+					{%- endif %}
+					{%- if group.notes_mod %}
+					<tr>
+						<td>Notes</td>
+						<td class="full size"><pre>{{ colorize_diff(group.previous.notes, group.notes) }}</pre></td>
+					</tr>
+					{%- endif %}
+				</tbody>
+			</table>

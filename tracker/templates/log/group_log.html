@@ -1,0 +1,10 @@
+{%- extends "base.html" -%}
+{%- from "_formhelpers.html" import boolean_value, colorize_diff -%}
+{% block content %}
+			<h1>{{ group.name }} - log
+			<a href="/{{  group.name }}" accesskey="b">back</a></h1>
+			{%- for group in group.versions|reverse %}
+			<h2>{{ group.transaction.issued_at.strftime('%d %b %Y %H:%M:%S') }}{% if can_watch_user_log %} by <a href="/user/{{ group.transaction.user.name }}/log">{{ group.transaction.user.name }}</a>{% endif %}</h2>
+			{%- include 'log/group_log_table.html' %}
+			{%- endfor %}
+{%- endblock %}

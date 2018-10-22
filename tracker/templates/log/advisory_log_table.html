@@ -1,0 +1,16 @@
+			<table class="styled-table column-major full size">
+				<tbody>
+					{%- if advisory.workaround_mod %}
+					<tr>
+						<td>Workaround</td>
+						<td class="full size">{{ colorize_diff(advisory.previous.workaround, advisory.workaround) }}</td>
+					</tr>
+					{%- endif %}
+					{%- if advisory.impact_mod %}
+					<tr>
+						<td>Impact</td>
+						<td class="full size">{{ colorize_diff(advisory.previous.impact, advisory.impact) }}</td>
+					</tr>
+					{%- endif %}
+				</tbody>
+			</table>
