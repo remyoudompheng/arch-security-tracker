@@ -5,10 +5,13 @@ Utility commands to import data from security.archlinux.org
 from click import echo
 import requests
 import time
+import datetime
 
 from .util import cli
 
 from tracker import db
+from tracker.advisory import advisory_extend_model_from_advisory_text
+from tracker.model.advisory import Advisory
 from tracker.model.cve import CVE
 from tracker.model.cvegroup import CVEGroup
 from tracker.model.cvegroupentry import CVEGroupEntry
@@ -112,6 +115,43 @@ def avgs():
         echo("processed {} ({} packages, {} issues)".format(g,
             len(group.packages), len(group.issues)))
 
+@sync.command()
+def advisories():
+    """Download advisories from the Arch tracker"""
+    sess = requests.session()
+    advs = get_advisories(sess)
+
+    echo("{} advisories in Arch tracker".format(len(advs)))
+    theirs = set(adv["name"] for adv in advs)
+    ours = set(x.id for x in Advisory.query.all())
+    echo("{} AVGs to import".format(len(theirs - ours)))
+
+    for info in advs:
+        if info["name"] in ours:
+            continue
+        body = get_advisory(sess, info["name"])
+        gpkg = CVEGroupPackage.query.filter_by(
+            group_id=int(info["group"][len("ASA-"):]),
+            pkgname=info["package"]).first()
+        if gpkg is None:
+            echo("{name}: cannot find {group}/{package} in database, ignoring".format(**info))
+            continue
+        obj = {
+            "id": info["name"],
+            "group_package": gpkg,
+            "advisory_type": info["type"],
+            "publication": None, # FIXME
+            # workaround, computed from content
+            # impact, computed from content
+            "content": body,
+            "created": datetime.datetime.strptime(info["date"], "%Y-%m-%d"),
+            "reference": info["reference"],
+        }
+        adv = db.create(Advisory, **obj)
+        advisory_extend_model_from_advisory_text(adv)
+        db.session.commit()
+        echo("imported {name} ({group}/{package})".format(**info))
+
 ARCH_TRACKER = "https://security.archlinux.org/"
 
 def get_orphans(session):
@@ -120,8 +160,14 @@ def get_orphans(session):
 def get_groups(session):
     return session.get(ARCH_TRACKER + "all.json").json()
 
+def get_advisories(session):
+    return session.get(ARCH_TRACKER + "advisories.json").json()
+
 def get_cve(session, cve_id):
     return session.get(ARCH_TRACKER + "cve/{}.json".format(cve_id)).json()
 
 def get_avg(session, id):
     return session.get(ARCH_TRACKER + "avg/{}.json".format(id)).json()
+
+def get_advisory(session, adv):
+    return session.get(ARCH_TRACKER + "{}/raw".format(adv)).text
