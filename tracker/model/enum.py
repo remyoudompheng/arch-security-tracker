@@ -70,6 +70,12 @@ class DatabaseEnum(Enum):
             return None
         return getattr(cls, name, None)
 
+    @classmethod
+    def from_label(cls, label):
+        for member in cls:
+            if member.label == label:
+                return member
+        return None
 
 class OrderedDatabaseEnum(DatabaseEnum):
     def __init__(self, label, order):
