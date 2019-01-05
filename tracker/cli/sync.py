@@ -2,7 +2,7 @@
 Utility commands to import data from security.archlinux.org
 """
 
-from click import echo
+from click import echo, argument
 import requests
 import time
 import datetime
@@ -26,26 +26,34 @@ def sync():
     pass
 
 @sync.command()
-def cves():
+@argument('names', metavar="CVE", nargs=-1)
+def cves(names):
     """Download CVEs from Arch tracker."""
     # CVEs are either orphan (not in a CVEGroup)
     # or in a CVEGroup (AVG).
     sess = requests.session()
-    todo = get_orphans(sess)
-    groups = get_groups(sess)
 
-    all_cves = set(cve["name"] for cve in todo["issues"]["orphan"])
-    for g in groups:
-        all_cves.update(g["issues"])
+    if not names:
+        todo = get_orphans(sess)
+        groups = get_groups(sess)
 
-    echo("{} CVEs in Arch tracker".format(len(all_cves)))
+        all_cves = set(cve["name"] for cve in todo["issues"]["orphan"])
+        for g in groups:
+            all_cves.update(g["issues"])
 
-    our_cves = set(cve.id for cve in CVE.query.all())
-    echo("{} CVEs to import".format(len(all_cves - our_cves)))
+        echo("{} CVEs in Arch tracker".format(len(all_cves)))
+
+        our_cves = set(cve.id for cve in CVE.query.all())
+        echo("{} CVEs to import".format(len(all_cves - our_cves)))
+
+        to_import = sorted(all_cves - our_cves)
+    else:
+        to_import = names
+
     t0 = time.time()
     objs = []
     imported = 0
-    for cve in sorted(all_cves - our_cves):
+    for cve in to_import:
         info = get_cve(sess, cve)
         obj = {
             "id": info["name"],
@@ -71,26 +79,53 @@ def cves():
         echo("imported {} new CVEs in {:.3f}s".format(imported, time.time()-t0))
 
 @sync.command()
-def avgs():
+@argument('id', metavar="AVG", nargs=-1)
+def avgs(id):
     """Download AVGs from Arch tracker"""
     sess = requests.session()
-    groups = get_groups(sess)
 
-    all_groups = set(g["name"] for g in groups)
+    if id:
+        targets = id
+    else:
+        groups = get_groups(sess)
 
-    echo("{} AVGs in Arch tracker".format(len(all_groups)))
+        all_groups = set(g["name"] for g in groups)
 
-    our_avgs = set(avg.name for avg in CVEGroup.query.all())
-    echo("{} AVGs to import".format(len(all_groups - our_avgs)))
+        echo("{} AVGs in Arch tracker".format(len(all_groups)))
+
+        our_avgs = set(avg.name for avg in CVEGroup.query.all())
+        echo("{} AVGs to import".format(len(all_groups - our_avgs)))
+
+        targets = sorted(all_groups - our_avgs)
+
     t0 = time.time()
     objs = []
-    for g in sorted(all_groups - our_avgs):
+    for g in targets:
         info = get_avg(sess, g)
+        # Sanity checks
+        invalid = False
         if info["name"].startswith("AVG-"):
             pk = int(info["name"][4:])
         else:
             echo("invalid AVG id {}".format(info["name"]))
+            invalid = True
+        for cve in info["issues"]:
+            if CVE.query.get(cve) is None:
+                echo("cannot process {}: {} not in database".format(info["name"], cve))
+                invalid = True
+        if invalid:
             continue
+
+        if CVEGroup.query.get(pk):
+            # CVEGroup do not cascade-delete advisories
+            advs = (db.session.query(Advisory, CVEGroupPackage)
+                .join(CVEGroupPackage)
+                .filter(CVEGroupPackage.group_id == pk))
+            for adv, _ in advs:
+                Advisory.query.filter_by(id=adv.id).delete()
+                echo("deleted related advisory {}".format(adv.id))
+            CVEGroup.query.filter_by(id=pk).delete()
+            echo("deleted group {name}".format(**info))
         obj = {
             "id": pk,
             "status": Status.from_label(info["status"]),
