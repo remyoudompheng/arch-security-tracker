@@ -79,3 +79,10 @@ def group(recalc=False, recalc_status=False, recalc_severity=False):
             group = update['group']
             old_severity = update['old_severity']
             echo('  -> Updated {}: {} -> {}'.format(group.name, old_severity, group.severity))
+
+@update.command()
+def nvd():
+    """Update copy of NVD database."""
+    from tracker.nvd import sync
+    sync()
+
